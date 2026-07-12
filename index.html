@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIVNテニス練習試合 ダブルス組み合わせ</title>
+<style>
+  :root{
+    --green:#2e7d32; --green-d:#1b5e20; --green-l:#e8f5e9;
+    --gray:#f5f5f5; --border:#ddd; --text:#222; --muted:#777;
+    --win:#2e7d32; --lose:#c62828;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    margin:0; color:var(--text); background:#fafafa; -webkit-text-size-adjust:100%;
+  }
+  header{
+    background:linear-gradient(135deg,var(--green),var(--green-d));
+    color:#fff; padding:16px; text-align:center;
+  }
+  header h1{margin:0; font-size:20px;}
+  header p{margin:4px 0 0; font-size:12px; opacity:.85;}
+  nav{
+    display:flex; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10;
+  }
+  nav button{
+    flex:1; padding:12px 4px; border:none; background:none; font-size:14px; color:var(--muted);
+    cursor:pointer; border-bottom:3px solid transparent; font-weight:600;
+  }
+  nav button.active{color:var(--green); border-bottom-color:var(--green);}
+  main{max-width:820px; margin:0 auto; padding:16px;}
+  .tab{display:none;}
+  .tab.active{display:block;}
+  h2{font-size:17px; margin:20px 0 10px; color:var(--green-d);}
+  h2:first-child{margin-top:4px;}
+  .card{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:14px;}
+  input,select,button{font-size:15px; font-family:inherit;}
+  input[type=text],input[type=date],input[type=number],select{
+    padding:9px 10px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--text);
+  }
+  .btn{
+    background:var(--green); color:#fff; border:none; padding:9px 16px; border-radius:8px; cursor:pointer; font-weight:600;
+  }
+  .btn:active{opacity:.85;}
+  .btn.sec{background:#fff; color:var(--green); border:1px solid var(--green);}
+  .btn.gray{background:#eee; color:#444; border:1px solid var(--border);}
+  .btn.danger{background:#fff; color:var(--lose); border:1px solid #e0a0a0;}
+  .btn.sm{padding:5px 10px; font-size:13px;}
+  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .muted{color:var(--muted); font-size:13px;}
+  .pill{display:inline-block; background:var(--green-l); color:var(--green-d); border-radius:20px; padding:3px 10px; font-size:13px; margin:3px;}
+  .chk-grid{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
+  .chk-grid label{
+    display:flex; align-items:center; gap:6px; background:var(--gray); border:1px solid var(--border);
+    border-radius:20px; padding:6px 12px; cursor:pointer; font-size:14px; user-select:none;
+  }
+  .chk-grid label.on{background:var(--green-l); border-color:var(--green);}
+  .chk-grid input{width:16px; height:16px; accent-color:var(--green);}
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  th,td{padding:8px 6px; text-align:center; border-bottom:1px solid #eee;}
+  th{background:var(--green-l); color:var(--green-d); font-size:12px;}
+  td.name,th.name{text-align:left;}
+  .rank1{color:#c9a000; font-weight:700;}
+  .rank2{color:#8a8a8a; font-weight:700;}
+  .rank3{color:#a86b32; font-weight:700;}
+  .match{
+    display:flex; align-items:center; gap:8px; padding:10px; border:1px solid var(--border);
+    border-radius:10px; margin-bottom:8px; background:#fff; flex-wrap:wrap;
+  }
+  .court-badge{background:var(--green); color:#fff; border-radius:6px; padding:3px 8px; font-size:12px; font-weight:700; white-space:nowrap;}
+  .team{flex:1; min-width:120px;}
+  .team .players{font-weight:600; font-size:14px;}
+  .score-in{width:52px; text-align:center; font-size:18px; font-weight:700; padding:6px;}
+  .vs{color:var(--muted); font-weight:700; font-size:13px;}
+  .team.winner .players{color:var(--win);}
+  .round-block{margin-bottom:18px;}
+  .round-title{font-weight:700; color:var(--green-d); margin:10px 0 6px; display:flex; align-items:center; gap:8px;}
+  .sitout{font-size:13px; color:var(--muted); margin-top:4px;}
+  .empty{text-align:center; color:var(--muted); padding:30px 10px;}
+  .del-x{background:none; border:none; color:var(--lose); font-size:18px; cursor:pointer; line-height:1;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; font-size:13px;}
+  .legend span{display:flex; align-items:center; gap:5px;}
+  .legend i{width:14px; height:14px; border-radius:3px; display:inline-block;}
+  label.field{display:block; margin-bottom:10px;}
+  label.field span{display:block; font-size:13px; color:var(--muted); margin-bottom:4px;}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:#333; color:#fff; padding:10px 18px; border-radius:20px; font-size:14px; opacity:0;
+    transition:opacity .3s; pointer-events:none; z-index:100;
+  }
+  .toast.show{opacity:1;}
+  .subnav{display:flex; gap:6px; margin-bottom:12px;}
+  .subnav button{flex:1; padding:8px; border:1px solid var(--green); background:#fff; color:var(--green); border-radius:8px; cursor:pointer; font-weight:600; font-size:13px;}
+  .subnav button.active{background:var(--green); color:#fff;}
+  svg{width:100%; height:auto; display:block;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎾 BIVNテニス練習試合</h1>
+  <p>ダブルス組み合わせ & 成績記録</p>
+</header>
+
+<nav>
+  <button data-tab="members" class="active">メンバー</button>
+  <button data-tab="play">試合作成</button>
+  <button data-tab="stats">成績</button>
+</nav>
+
+<main>
+  <!-- ============ メンバー ============ -->
+  <section id="tab-members" class="tab active">
+    <h2>メンバー登録</h2>
+    <div class="card">
+      <div class="row">
+        <input type="text" id="newName" placeholder="名前を入力" style="flex:1;">
+        <button class="btn" onclick="addPlayer()">追加</button>
+      </div>
+      <div class="muted" style="margin-top:8px;">登録した人が試合作成の参加者候補になります。</div>
+    </div>
+    <div class="card">
+      <div id="playerList"></div>
+    </div>
+
+    <h2>データ管理（引き継ぎ・バックアップ）</h2>
+    <div class="card">
+      <div class="muted" style="margin-bottom:10px;">
+        メンバー・試合・成績のすべてを1つのファイルに書き出せます。幹事の交代や機種変更のときに、このファイルを渡して「読み込み」すれば丸ごと引き継げます。
+      </div>
+      <div class="row">
+        <button class="btn" onclick="exportBackup()">💾 バックアップを書き出し</button>
+        <button class="btn sec" onclick="document.getElementById('importFile').click()">📂 バックアップを読み込み</button>
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none;" onchange="importBackup(this)">
+      </div>
+      <div class="muted" style="margin-top:10px;">
+        ※読み込むと現在のデータは上書きされます（読み込み前に自動で控えを書き出します）。
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 試合作成 ============ -->
+  <section id="tab-play" class="tab">
+    <h2>セッション（練習日）</h2>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;">
+        <select id="sessionSelect" style="flex:1;" onchange="selectSession(this.value)"></select>
+        <button class="btn sec sm" onclick="toggleNewSession()">＋新規</button>
+      </div>
+      <div id="newSessionForm" style="display:none;">
+        <label class="field"><span>練習日</span>
+          <input type="date" id="sessDate">
+        </label>
+        <label class="field"><span>使用コート数</span>
+          <input type="number" id="sessCourts" min="1" max="20" value="2" style="width:80px;">
+        </label>
+        <div class="field"><span style="font-size:13px;color:var(--muted);">参加者を選択</span>
+          <div class="row" style="margin-bottom:6px;">
+            <button class="btn gray sm" onclick="setAllParticipants(true)">全員選択</button>
+            <button class="btn gray sm" onclick="setAllParticipants(false)">全解除</button>
+          </div>
+          <div class="chk-grid" id="participantPick"></div>
+        </div>
+        <button class="btn" onclick="createSession()">このセッションを作成</button>
+      </div>
+    </div>
+
+    <div id="sessionArea"></div>
+  </section>
+
+  <!-- ============ 成績 ============ -->
+  <section id="tab-stats" class="tab">
+    <div class="subnav">
+      <button data-sub="today" class="active" onclick="showSub('today')">本日</button>
+      <button data-sub="year" onclick="showSub('year')">年間</button>
+      <button data-sub="chart" onclick="showSub('chart')">月別グラフ</button>
+    </div>
+    <div id="sub-today" class="subtab">
+      <h2>本日の成績ランキング</h2>
+      <div class="card">
+        <label class="field"><span>対象日</span>
+          <input type="date" id="todayDate" onchange="renderToday()">
+        </label>
+        <div id="todayTable"></div>
+      </div>
+    </div>
+    <div id="sub-year" class="subtab" style="display:none;">
+      <h2>年間成績ランキング</h2>
+      <div class="card">
+        <label class="field"><span>対象年</span>
+          <select id="yearSelect" onchange="renderYear()"></select>
+        </label>
+        <div id="yearTable"></div>
+      </div>
+    </div>
+    <div id="sub-chart" class="subtab" style="display:none;">
+      <h2>月別 勝率の推移</h2>
+      <div class="card">
+        <label class="field"><span>対象年</span>
+          <select id="chartYear" onchange="renderChart()"></select>
+        </label>
+        <div id="chartArea"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= データ ================= */
+const KEY='tennisDoublesApp_v1';
+let DB={players:[], sessions:[]};
+let currentSessionId=null;
+
+function load(){
+  try{const s=localStorage.getItem(KEY); if(s) DB=JSON.parse(s);}catch(e){}
+  if(!DB.players) DB.players=[];
+  if(!DB.sessions) DB.sessions=[];
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(DB)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1500);
+}
+function nameOf(id){ const p=DB.players.find(x=>x.id===id); return p?p.name:'(削除)'; }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+
+/* ================= タブ ================= */
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+    if(b.dataset.tab==='stats') refreshStats();
+    if(b.dataset.tab==='play') renderSessionSelect();
+  };
+});
+function showSub(s){
+  document.querySelectorAll('.subnav button').forEach(x=>x.classList.toggle('active',x.dataset.sub===s));
+  document.querySelectorAll('.subtab').forEach(x=>x.style.display='none');
+  document.getElementById('sub-'+s).style.display='block';
+  if(s==='today') renderToday();
+  if(s==='year') renderYear();
+  if(s==='chart') renderChart();
+}
+
+/* ================= メンバー ================= */
+function addPlayer(){
+  const inp=document.getElementById('newName');
+  const name=inp.value.trim();
+  if(!name){toast('名前を入力してください'); return;}
+  if(DB.players.some(p=>p.name===name)){toast('同じ名前があります'); return;}
+  DB.players.push({id:uid(), name});
+  inp.value=''; save(); renderPlayers();
+}
+function deletePlayer(id){
+  if(!confirm(nameOf(id)+' を削除しますか？（過去の記録は残ります）')) return;
+  DB.players=DB.players.filter(p=>p.id!==id);
+  save(); renderPlayers();
+}
+function renderPlayers(){
+  const el=document.getElementById('playerList');
+  if(DB.players.length===0){ el.innerHTML='<div class="empty">まだメンバーがいません</div>'; return; }
+  el.innerHTML='<div class="muted" style="margin-bottom:8px;">'+DB.players.length+'人</div>'+
+    DB.players.map(p=>
+      '<div class="row" style="justify-content:space-between;border-bottom:1px solid #eee;padding:8px 2px;">'+
+      '<span>'+escapeHtml(p.name)+'</span>'+
+      '<button class="del-x" onclick="deletePlayer(\''+p.id+'\')">✕</button></div>'
+    ).join('');
+}
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ============ バックアップ 書き出し / 読み込み ============ */
+function exportBackup(silent){
+  const payload={app:'tennisDoubles', version:1, exportedAt:new Date().toISOString(), data:DB};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='tennis_backup_'+todayStr()+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  if(!silent) toast('バックアップを書き出しました');
+}
+function importBackup(input){
+  const file=input.files&&input.files[0];
+  input.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let obj;
+    try{ obj=JSON.parse(e.target.result); }catch(err){ alert('このファイルは読み込めません（形式が不正です）。'); return; }
+    const data=obj&&obj.data?obj.data:obj;
+    if(!data||!Array.isArray(data.players)||!Array.isArray(data.sessions)){
+      alert('このアプリのバックアップファイルではないようです。'); return;
+    }
+    const msg='読み込むと現在のデータ（メンバー'+DB.players.length+'人・セッション'+DB.sessions.length+'件）は上書きされます。\n読み込みますか？';
+    if(!confirm(msg)) return;
+    // 念のため現在のデータを控えとして書き出し
+    if(DB.players.length||DB.sessions.length) exportBackup(true);
+    DB={players:data.players, sessions:data.sessions};
+    currentSessionId=null;
+    save();
+    renderPlayers(); renderSessionSelect(); refreshStats();
+    toast('バックアップを読み込みました（メンバー'+DB.players.length+'人）');
+  };
+  reader.readAsText(file);
+}
+
+/* ================= セッション作成 ================= */
+function toggleNewSession(){
+  const f=document.getElementById('newSessionForm');
+  const show=f.style.display==='none';
+  f.style.display=show?'block':'none';
+  if(show){
+    document.getElementById('sessDate').value=todayStr();
+    renderParticipantPick();
+  }
+}
+function renderParticipantPick(){
+  const el=document.getElementById('participantPick');
+  if(DB.players.length===0){ el.innerHTML='<span class="muted">先に「メンバー」タブで登録してください</span>'; return; }
+  el.innerHTML=DB.players.map(p=>
+    '<label><input type="checkbox" class="pp" value="'+p.id+'" onchange="this.parentNode.classList.toggle(\'on\',this.checked)">'+escapeHtml(p.name)+'</label>'
+  ).join('');
+}
+function setAllParticipants(v){
+  document.querySelectorAll('.pp').forEach(c=>{c.checked=v; c.parentNode.classList.toggle('on',v);});
+}
+function createSession(){
+  const date=document.getElementById('sessDate').value;
+  const courts=parseInt(document.getElementById('sessCourts').value)||1;
+  const participants=[...document.querySelectorAll('.pp:checked')].map(c=>c.value);
+  if(!date){toast('日付を選択してください'); return;}
+  if(participants.length<4){toast('4人以上選んでください'); return;}
+  const s={id:uid(), date, courts, participants, rounds:[]};
+  DB.sessions.push(s);
+  DB.sessions.sort((a,b)=> b.date.localeCompare(a.date));
+  currentSessionId=s.id;
+  save();
+  document.getElementById('newSessionForm').style.display='none';
+  renderSessionSelect();
+  renderSessionArea();
+  addRound();
+}
+function selectSession(id){ currentSessionId=id||null; renderSessionArea(); }
+function renderSessionSelect(){
+  const sel=document.getElementById('sessionSelect');
+  if(DB.sessions.length===0){
+    sel.innerHTML='<option value="">セッションがありません</option>';
+    currentSessionId=null; renderSessionArea(); return;
+  }
+  if(!currentSessionId || !DB.sessions.find(s=>s.id===currentSessionId))
+    currentSessionId=DB.sessions[0].id;
+  sel.innerHTML=DB.sessions.map(s=>{
+    const done=countPlayed(s);
+    return '<option value="'+s.id+'"'+(s.id===currentSessionId?' selected':'')+'>'+
+      s.date+'（'+s.participants.length+'人/'+s.courts+'コート）'+(done?' ・'+done+'試合':'')+'</option>';
+  }).join('');
+  renderSessionArea();
+}
+function countPlayed(s){
+  let n=0; s.rounds.forEach(r=>r.matches.forEach(m=>{if(m.s1!=null&&m.s2!=null)n++;})); return n;
+}
+function currentSession(){ return DB.sessions.find(s=>s.id===currentSessionId); }
+
+function deleteSession(){
+  const s=currentSession(); if(!s) return;
+  if(!confirm(s.date+' のセッションを削除しますか？成績記録も消えます。')) return;
+  DB.sessions=DB.sessions.filter(x=>x.id!==s.id);
+  currentSessionId=null; save(); renderSessionSelect();
+}
+
+/* ============ 組み合わせ生成（アメリカーノ方式） ============ */
+function pairKey(a,b){ return a<b?a+'|'+b:b+'|'+a; }
+function shuffle(arr){ arr=arr.slice(); for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+function buildHistory(s){
+  const played={}, partner={}, opp={};
+  s.participants.forEach(p=>played[p]=0);
+  s.rounds.forEach(r=>{
+    r.matches.forEach(m=>{
+      m.team1.concat(m.team2).forEach(p=>{ if(played[p]!=null) played[p]++; });
+      partner[pairKey(m.team1[0],m.team1[1])]=(partner[pairKey(m.team1[0],m.team1[1])]||0)+1;
+      partner[pairKey(m.team2[0],m.team2[1])]=(partner[pairKey(m.team2[0],m.team2[1])]||0)+1;
+      m.team1.forEach(a=>m.team2.forEach(b=>{ opp[pairKey(a,b)]=(opp[pairKey(a,b)]||0)+1; }));
+    });
+    (r.sitouts||[]).forEach(()=>{}); // sitouts don't add to played
+  });
+  return {played, partner, opp};
+}
+
+function addRound(){
+  const s=currentSession(); if(!s) return;
+  if(s.participants.length<4){toast('参加者が4人未満です'); return;}
+  const H=buildHistory(s);
+  const present=s.participants.slice();
+  const capacity=s.courts*4;
+  const numPlaying=Math.min(capacity, Math.floor(present.length/4)*4);
+  if(numPlaying<4){toast('コート/人数が足りません'); return;}
+  // 出場回数が少ない人を優先的に出す（休憩を公平化）
+  const sorted=present.slice().sort((a,b)=> (H.played[a]-H.played[b]) || (Math.random()-0.5));
+  const playing=sorted.slice(0,numPlaying);
+  const sitouts=sorted.slice(numPlaying);
+
+  // ペア作り：過去に組んだ回数が少ない相手を優先
+  let pool=shuffle(playing);
+  const pairs=[];
+  while(pool.length){
+    const a=pool.shift();
+    let best=null,bc=Infinity;
+    for(const b of pool){ const c=H.partner[pairKey(a,b)]||0; if(c<bc){bc=c;best=b;} }
+    pairs.push([a,best]);
+    pool=pool.filter(x=>x!==best);
+  }
+  // 対戦組み：過去に当たった回数が少ないペア同士を優先
+  let pp=shuffle(pairs);
+  const matches=[];
+  let court=1;
+  while(pp.length){
+    const t1=pp.shift();
+    let bi=-1,bc=Infinity,best=null;
+    pp.forEach((t2,i)=>{
+      let c=0; t1.forEach(a=>t2.forEach(b=>c+=(H.opp[pairKey(a,b)]||0)));
+      if(c<bc){bc=c;best=t2;bi=i;}
+    });
+    matches.push({id:uid(), court:court++, team1:t1, team2:best, s1:null, s2:null});
+    pp.splice(bi,1);
+  }
+  s.rounds.push({matches, sitouts});
+  save(); renderSessionSelect();
+}
+function clearRounds(){
+  const s=currentSession(); if(!s) return;
+  if(!confirm('このセッションのラウンドを全て削除しますか？')) return;
+  s.rounds=[]; save(); renderSessionSelect();
+}
+function removeLastRound(){
+  const s=currentSession(); if(!s) return;
+  s.rounds.pop(); save(); renderSessionSelect();
+}
+function setScore(mid, side, val){
+  const s=currentSession(); if(!s) return;
+  for(const r of s.rounds) for(const m of r.matches){
+    if(m.id===mid){
+      const v=val===''?null:Math.max(0,parseInt(val)||0);
+      if(side===1) m.s1=v; else m.s2=v;
+      save(); renderSessionArea(); return;
+    }
+  }
+}
+
+function renderSessionArea(){
+  const el=document.getElementById('sessionArea');
+  const s=currentSession();
+  if(!s){ el.innerHTML='<div class="empty">「＋新規」からセッションを作成してください</div>'; return; }
+  let html='<div class="card">'+
+    '<div class="row" style="justify-content:space-between;">'+
+      '<div><strong>'+s.date+'</strong> <span class="muted">'+s.participants.length+'人・'+s.courts+'コート</span></div>'+
+      '<button class="btn danger sm" onclick="deleteSession()">セッション削除</button>'+
+    '</div>'+
+    '<div style="margin-top:8px;">'+s.participants.map(id=>'<span class="pill">'+escapeHtml(nameOf(id))+'</span>').join('')+'</div>'+
+    '<div class="row" style="margin-top:12px;">'+
+      '<button class="btn" onclick="addRound()">＋ラウンドを追加</button>'+
+      '<button class="btn gray sm" onclick="removeLastRound()">最後のラウンドを削除</button>'+
+      '<button class="btn danger sm" onclick="clearRounds()">全ラウンド削除</button>'+
+    '</div></div>';
+
+  if(s.rounds.length===0){
+    html+='<div class="empty">「＋ラウンドを追加」で組み合わせを作成します</div>';
+  }
+  s.rounds.forEach((r,ri)=>{
+    html+='<div class="round-block card"><div class="round-title">ラウンド '+(ri+1)+'</div>';
+    r.matches.forEach(m=>{
+      const w1=(m.s1!=null&&m.s2!=null&&m.s1>m.s2), w2=(m.s1!=null&&m.s2!=null&&m.s2>m.s1);
+      html+='<div class="match">'+
+        '<span class="court-badge">コート'+m.court+'</span>'+
+        '<div class="team'+(w1?' winner':'')+'"><div class="players">'+escapeHtml(nameOf(m.team1[0]))+' / '+escapeHtml(nameOf(m.team1[1]))+'</div></div>'+
+        '<input class="score-in" type="number" min="0" inputmode="numeric" value="'+(m.s1==null?'':m.s1)+'" onchange="setScore(\''+m.id+'\',1,this.value)">'+
+        '<span class="vs">-</span>'+
+        '<input class="score-in" type="number" min="0" inputmode="numeric" value="'+(m.s2==null?'':m.s2)+'" onchange="setScore(\''+m.id+'\',2,this.value)">'+
+        '<div class="team'+(w2?' winner':'')+'" style="text-align:right;"><div class="players">'+escapeHtml(nameOf(m.team2[0]))+' / '+escapeHtml(nameOf(m.team2[1]))+'</div></div>'+
+        '</div>';
+    });
+    if(r.sitouts&&r.sitouts.length)
+      html+='<div class="sitout">休憩: '+r.sitouts.map(id=>escapeHtml(nameOf(id))).join('、')+'</div>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+/* ================= 成績集計 ================= */
+// filter: function(dateStr)->bool
+function computeStats(filter){
+  const stat={}; // id -> {w,l,gf,ga,m}
+  function ensure(id){ if(!stat[id]) stat[id]={id,w:0,l:0,gf:0,ga:0,m:0}; return stat[id]; }
+  DB.sessions.forEach(s=>{
+    if(!filter(s.date)) return;
+    s.rounds.forEach(r=>r.matches.forEach(m=>{
+      if(m.s1==null||m.s2==null) return;
+      const t1=m.team1, t2=m.team2;
+      const win1=m.s1>m.s2, win2=m.s2>m.s1;
+      t1.forEach(id=>{const o=ensure(id); o.m++; o.gf+=m.s1; o.ga+=m.s2; if(win1)o.w++; else if(win2)o.l++;});
+      t2.forEach(id=>{const o=ensure(id); o.m++; o.gf+=m.s2; o.ga+=m.s1; if(win2)o.w++; else if(win1)o.l++;});
+    }));
+  });
+  const arr=Object.values(stat);
+  arr.forEach(o=>{ o.rate=o.m? o.w/o.m:0; o.diff=o.gf-o.ga; });
+  arr.sort((a,b)=> b.rate-a.rate || b.diff-a.diff || b.w-a.w);
+  return arr;
+}
+function rankTable(arr){
+  if(arr.length===0) return '<div class="empty">記録がありません</div>';
+  let h='<table><thead><tr><th>順位</th><th class="name">名前</th><th>試合</th><th>勝</th><th>敗</th><th>勝率</th><th>獲得G</th><th>失G</th><th>G差</th></tr></thead><tbody>';
+  arr.forEach((o,i)=>{
+    const rc=i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
+    h+='<tr><td class="'+rc+'">'+(i+1)+'</td><td class="name">'+escapeHtml(nameOf(o.id))+'</td>'+
+      '<td>'+o.m+'</td><td>'+o.w+'</td><td>'+o.l+'</td>'+
+      '<td><strong>'+(o.rate*100).toFixed(0)+'%</strong></td>'+
+      '<td>'+o.gf+'</td><td>'+o.ga+'</td><td>'+(o.diff>0?'+':'')+o.diff+'</td></tr>';
+  });
+  return h+'</tbody></table>';
+}
+
+function refreshStats(){
+  // 年セレクタ更新
+  const years=[...new Set(DB.sessions.map(s=>s.date.slice(0,4)))].sort().reverse();
+  if(years.length===0) years.push(String(new Date().getFullYear()));
+  ['yearSelect','chartYear'].forEach(idn=>{
+    const sel=document.getElementById(idn); const cur=sel.value;
+    sel.innerHTML=years.map(y=>'<option value="'+y+'">'+y+'年</option>').join('');
+    if(years.includes(cur)) sel.value=cur;
+  });
+  if(!document.getElementById('todayDate').value)
+    document.getElementById('todayDate').value= DB.sessions[0]?DB.sessions[0].date:todayStr();
+  renderToday(); renderYear(); renderChart();
+}
+function renderToday(){
+  const d=document.getElementById('todayDate').value||todayStr();
+  document.getElementById('todayTable').innerHTML=rankTable(computeStats(date=>date===d));
+}
+function renderYear(){
+  const y=document.getElementById('yearSelect').value;
+  document.getElementById('yearTable').innerHTML=rankTable(computeStats(date=>date.slice(0,4)===y));
+}
+
+/* ============ 月別勝率グラフ（SVG） ============ */
+const PALETTE=['#e6194b','#3cb44b','#4363d8','#f58231','#911eb4','#42d4f4','#f032e6','#bfef45','#fabed4','#469990','#dcbeff','#9a6324','#800000','#808000','#000075','#a9a9a9','#e6beff','#aaffc3'];
+function renderChart(){
+  const y=document.getElementById('chartYear').value;
+  const area=document.getElementById('chartArea');
+  // 各プレイヤー×月の勝率
+  const data={}; // id -> {month(1-12): {w,m}}
+  DB.sessions.forEach(s=>{
+    if(s.date.slice(0,4)!==y) return;
+    const mo=parseInt(s.date.slice(5,7));
+    s.rounds.forEach(r=>r.matches.forEach(m=>{
+      if(m.s1==null||m.s2==null) return;
+      const win1=m.s1>m.s2, win2=m.s2>m.s1;
+      const reg=(id,win)=>{ if(!data[id])data[id]={}; if(!data[id][mo])data[id][mo]={w:0,m:0}; data[id][mo].m++; if(win)data[id][mo].w++; };
+      m.team1.forEach(id=>reg(id,win1)); m.team2.forEach(id=>reg(id,win2));
+    }));
+  });
+  const ids=Object.keys(data);
+  if(ids.length===0){ area.innerHTML='<div class="empty">'+y+'年の記録がありません</div>'; return; }
+
+  const W=760,H=360, padL=40,padR=16,padT=16,padB=30;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const x=mo=> padL + (mo-1)/11*plotW;
+  const yv=rate=> padT + (1-rate)*plotH;
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">';
+  // y grid 0/25/50/75/100
+  [0,25,50,75,100].forEach(p=>{
+    const yy=yv(p/100);
+    svg+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="#eee"/>';
+    svg+='<text x="'+(padL-6)+'" y="'+(yy+4)+'" font-size="11" fill="#999" text-anchor="end">'+p+'%</text>';
+  });
+  // x labels
+  for(let mo=1;mo<=12;mo++){
+    svg+='<text x="'+x(mo)+'" y="'+(H-10)+'" font-size="10" fill="#999" text-anchor="middle">'+mo+'</text>';
+  }
+  ids.forEach((id,idx)=>{
+    const col=PALETTE[idx%PALETTE.length];
+    const pts=[];
+    for(let mo=1;mo<=12;mo++){ if(data[id][mo]&&data[id][mo].m>0){ pts.push([mo, data[id][mo].w/data[id][mo].m]); } }
+    if(pts.length){
+      const d=pts.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+' '+yv(p[1]).toFixed(1)).join(' ');
+      svg+='<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.2"/>';
+      pts.forEach(p=>{ svg+='<circle cx="'+x(p[0]).toFixed(1)+'" cy="'+yv(p[1]).toFixed(1)+'" r="3.2" fill="'+col+'"/>'; });
+    }
+  });
+  svg+='</svg>';
+  let legend='<div class="legend">'+ids.map((id,idx)=>
+    '<span><i style="background:'+PALETTE[idx%PALETTE.length]+'"></i>'+escapeHtml(nameOf(id))+'</span>'
+  ).join('')+'</div>';
+  area.innerHTML=svg+legend+'<div class="muted" style="margin-top:6px;">横軸=月 / 縦軸=勝率。点がある月に試合記録があります。</div>';
+}
+
+/* ================= 初期化 ================= */
+load();
+renderPlayers();
+renderSessionSelect();
+</script>
+</body>
+</html>
