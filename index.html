@@ -65,14 +65,16 @@
   .rank2{color:#8a8a8a; font-weight:700;}
   .rank3{color:#a86b32; font-weight:700;}
   .match{
-    display:flex; align-items:center; gap:8px; padding:10px; border:1px solid var(--border);
-    border-radius:10px; margin-bottom:8px; background:#fff; flex-wrap:wrap;
+    display:grid;
+    grid-template-columns: auto minmax(0,1fr) 30px auto 30px minmax(0,1fr);
+    align-items:center; gap:5px; padding:8px 8px; border:1px solid var(--border);
+    border-radius:10px; margin-bottom:8px; background:#fff;
   }
-  .court-badge{background:var(--green); color:#fff; border-radius:6px; padding:3px 8px; font-size:12px; font-weight:700; white-space:nowrap;}
-  .team{flex:1; min-width:120px;}
-  .team .players{font-weight:600; font-size:14px;}
-  .score-in{width:52px; text-align:center; font-size:18px; font-weight:700; padding:6px;}
-  .vs{color:var(--muted); font-weight:700; font-size:13px;}
+  .court-badge{background:var(--green); color:#fff; border-radius:6px; padding:3px 5px; font-size:10px; font-weight:700; white-space:nowrap;}
+  .team{min-width:0;}
+  .team .players{font-weight:600; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .score-in{width:30px; text-align:center; font-size:15px; font-weight:700; padding:4px 2px;}
+  .vs{color:var(--muted); font-weight:700; font-size:12px; text-align:center;}
   .team.winner .players{color:var(--win);}
   .round-block{margin-bottom:18px;}
   .round-title{font-weight:700; color:var(--green-d); margin:10px 0 6px; display:flex; align-items:center; gap:8px;}
@@ -393,27 +395,19 @@ function buildHistory(s){
   return {played, partner, opp};
 }
 
-function addRound(){
-  const s=currentSession(); if(!s) return;
-  if(s.participants.length<4){toast('参加者が4人未満です'); return;}
-  const H=buildHistory(s);
-  const present=s.participants.slice();
-  const capacity=s.courts*4;
-  const numPlaying=Math.min(capacity, Math.floor(present.length/4)*4);
-  if(numPlaying<4){toast('コート/人数が足りません'); return;}
-  // 出場回数が少ない人を優先的に出す（休憩を公平化）
-  const sorted=present.slice().sort((a,b)=> (H.played[a]-H.played[b]) || (Math.random()-0.5));
-  const playing=sorted.slice(0,numPlaying);
-  const sitouts=sorted.slice(numPlaying);
-
-  // ペア作り：過去に組んだ回数が少ない相手を優先
+// 1回分の「ペア分け＋対戦組み」を作り、過去の重複度合いをコストとして返す
+// コストが低いほど「同じパートナー」「同じ対戦相手」の重複が少ない良い組み合わせ
+function attemptRound(playing, H){
+  // ペア作り：過去に組んだ回数が少ない相手を優先（同点はランダム＝poolが事前shuffle済み）
   let pool=shuffle(playing);
   const pairs=[];
+  let cost=0;
   while(pool.length){
     const a=pool.shift();
     let best=null,bc=Infinity;
     for(const b of pool){ const c=H.partner[pairKey(a,b)]||0; if(c<bc){bc=c;best=b;} }
     pairs.push([a,best]);
+    cost += bc*bc; // 重複回数が多いほど重いペナルティ
     pool=pool.filter(x=>x!==best);
   }
   // 対戦組み：過去に当たった回数が少ないペア同士を優先
@@ -427,9 +421,46 @@ function addRound(){
       let c=0; t1.forEach(a=>t2.forEach(b=>c+=(H.opp[pairKey(a,b)]||0)));
       if(c<bc){bc=c;best=t2;bi=i;}
     });
-    matches.push({id:uid(), court:court++, team1:t1, team2:best, s1:null, s2:null});
+    cost += bc*bc;
+    matches.push({court:court++, team1:t1, team2:best});
     pp.splice(bi,1);
   }
+  return {matches, cost};
+}
+
+function addRound(){
+  const s=currentSession(); if(!s) return;
+  if(s.participants.length<4){toast('参加者が4人未満です'); return;}
+  const H=buildHistory(s);
+  const present=s.participants.slice();
+  const capacity=s.courts*4;
+  const numPlaying=Math.min(capacity, Math.floor(present.length/4)*4);
+  if(numPlaying<4){toast('コート/人数が足りません'); return;}
+
+  // 直前ラウンドで休憩した人（連続休憩を避けるため）
+  const lastSitouts=s.rounds.length ? new Set(s.rounds[s.rounds.length-1].sitouts||[]) : new Set();
+
+  // 出場優先度：①試合数が少ない人を優先（休憩を公平化）
+  //           ②試合数が同じ場合は、直前に休んだ人を優先的に出場させる（連続休憩を回避）
+  //           ③それでも同点ならランダム
+  const sorted=present.slice().sort((a,b)=>{
+    if(H.played[a]!==H.played[b]) return H.played[a]-H.played[b];
+    const aRested=lastSitouts.has(a)?0:1, bRested=lastSitouts.has(b)?0:1;
+    if(aRested!==bRested) return aRested-bRested;
+    return Math.random()-0.5;
+  });
+  const playing=sorted.slice(0,numPlaying);
+  const sitouts=sorted.slice(numPlaying);
+
+  // ペア作り・対戦組みを複数パターン試し、最も重複の少ない組み合わせを採用
+  let bestResult=null;
+  const ATTEMPTS=50;
+  for(let i=0;i<ATTEMPTS;i++){
+    const r=attemptRound(playing, H);
+    if(!bestResult || r.cost<bestResult.cost){ bestResult=r; if(bestResult.cost===0) break; }
+  }
+  const matches=bestResult.matches.map(m=>({id:uid(), court:m.court, team1:m.team1, team2:m.team2, s1:null, s2:null}));
+
   s.rounds.push({matches, sitouts});
   save(); renderSessionSelect();
 }
