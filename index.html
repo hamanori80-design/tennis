@@ -11,6 +11,7 @@
     --win:#2e7d32; --lose:#c62828;
   }
   *{box-sizing:border-box;}
+  html,body{overflow-x:hidden; width:100%;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
     margin:0; color:var(--text); background:#fafafa; -webkit-text-size-adjust:100%;
@@ -34,7 +35,7 @@
   .tab.active{display:block;}
   h2{font-size:17px; margin:20px 0 10px; color:var(--green-d);}
   h2:first-child{margin-top:4px;}
-  .card{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:14px;}
+  .card{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:14px; max-width:100%; overflow:hidden;}
   input,select,button{font-size:15px; font-family:inherit;}
   input[type=text],input[type=date],input[type=number],select{
     padding:9px 10px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--text);
@@ -66,15 +67,15 @@
   .rank3{color:#a86b32; font-weight:700;}
   .match{
     display:grid;
-    grid-template-columns: auto minmax(0,1fr) 30px auto 30px minmax(0,1fr);
-    align-items:center; gap:5px; padding:8px 8px; border:1px solid var(--border);
-    border-radius:10px; margin-bottom:8px; background:#fff;
+    grid-template-columns: auto minmax(0,1fr) 26px auto 26px minmax(0,1fr);
+    align-items:center; gap:4px; padding:8px 6px; border:1px solid var(--border);
+    border-radius:10px; margin-bottom:8px; background:#fff; max-width:100%; overflow:hidden;
   }
-  .court-badge{background:var(--green); color:#fff; border-radius:6px; padding:3px 5px; font-size:10px; font-weight:700; white-space:nowrap;}
+  .court-badge{background:var(--green); color:#fff; border-radius:6px; padding:3px 4px; font-size:9.5px; font-weight:700; white-space:nowrap;}
   .team{min-width:0;}
-  .team .players{font-weight:600; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .score-in{width:30px; text-align:center; font-size:15px; font-weight:700; padding:4px 2px;}
-  .vs{color:var(--muted); font-weight:700; font-size:12px; text-align:center;}
+  .team .players{font-weight:600; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .score-in{width:26px; text-align:center; font-size:14px; font-weight:700; padding:4px 1px;}
+  .vs{color:var(--muted); font-weight:700; font-size:11px; text-align:center;}
   .team.winner .players{color:var(--win);}
   .round-block{margin-bottom:18px;}
   .round-title{font-weight:700; color:var(--green-d); margin:10px 0 6px; display:flex; align-items:center; gap:8px;}
