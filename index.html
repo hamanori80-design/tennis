@@ -190,7 +190,7 @@
     <div id="sub-year" class="subtab" style="display:none;">
       <h2>年間成績ランキング</h2>
       <div class="card">
-        <label class="field"><span>対象年</span>
+        <label class="field"><span>対象年度</span>
           <select id="yearSelect" onchange="renderYear()"></select>
         </label>
         <div id="yearTable"></div>
@@ -199,7 +199,7 @@
     <div id="sub-chart" class="subtab" style="display:none;">
       <h2>月別 勝率の推移</h2>
       <div class="card">
-        <label class="field"><span>対象年</span>
+        <label class="field"><span>対象年度</span>
           <select id="chartYear" onchange="renderChart()"></select>
         </label>
         <div id="chartArea"></div>
@@ -478,7 +478,8 @@ function setScore(mid, side, val){
   const s=currentSession(); if(!s) return;
   for(const r of s.rounds) for(const m of r.matches){
     if(m.id===mid){
-      const v=val===''?null:Math.max(0,parseInt(val)||0);
+      let v=val===''?null:Math.max(0,parseInt(val)||0);
+      if(v!=null && v>9) v=9; // 1桁（0〜9）まで
       if(side===1) m.s1=v; else m.s2=v;
       save(); renderSessionArea(); return;
     }
@@ -511,9 +512,9 @@ function renderSessionArea(){
       html+='<div class="match">'+
         '<span class="court-badge">コート'+m.court+'</span>'+
         '<div class="team'+(w1?' winner':'')+'"><div class="players">'+escapeHtml(nameOf(m.team1[0]))+' / '+escapeHtml(nameOf(m.team1[1]))+'</div></div>'+
-        '<input class="score-in" type="number" min="0" inputmode="numeric" value="'+(m.s1==null?'':m.s1)+'" onchange="setScore(\''+m.id+'\',1,this.value)">'+
+        '<input class="score-in" type="number" min="0" max="9" maxlength="1" inputmode="numeric" value="'+(m.s1==null?'':m.s1)+'" oninput="if(this.value.length>1)this.value=this.value.slice(0,1);" onchange="setScore(\''+m.id+'\',1,this.value)">'+
         '<span class="vs">-</span>'+
-        '<input class="score-in" type="number" min="0" inputmode="numeric" value="'+(m.s2==null?'':m.s2)+'" onchange="setScore(\''+m.id+'\',2,this.value)">'+
+        '<input class="score-in" type="number" min="0" max="9" maxlength="1" inputmode="numeric" value="'+(m.s2==null?'':m.s2)+'" oninput="if(this.value.length>1)this.value=this.value.slice(0,1);" onchange="setScore(\''+m.id+'\',2,this.value)">'+
         '<div class="team'+(w2?' winner':'')+'" style="text-align:right;"><div class="players">'+escapeHtml(nameOf(m.team2[0]))+' / '+escapeHtml(nameOf(m.team2[1]))+'</div></div>'+
         '</div>';
     });
@@ -525,6 +526,11 @@ function renderSessionArea(){
 }
 
 /* ================= 成績集計 ================= */
+// 年度（4月始まり〜翌3月）変換：3月以前は前年扱いにする
+function fiscalYearOf(dateStr){
+  const y=parseInt(dateStr.slice(0,4),10), mo=parseInt(dateStr.slice(5,7),10);
+  return mo>=4 ? y : y-1;
+}
 // filter: function(dateStr)->bool
 function computeStats(filter){
   const stat={}; // id -> {w,l,gf,ga,m}
@@ -558,13 +564,13 @@ function rankTable(arr){
 }
 
 function refreshStats(){
-  // 年セレクタ更新
-  const years=[...new Set(DB.sessions.map(s=>s.date.slice(0,4)))].sort().reverse();
-  if(years.length===0) years.push(String(new Date().getFullYear()));
+  // 年度セレクタ更新（4月始まり）
+  const years=[...new Set(DB.sessions.map(s=>fiscalYearOf(s.date)))].sort((a,b)=>b-a);
+  if(years.length===0) years.push(fiscalYearOf(todayStr()));
   ['yearSelect','chartYear'].forEach(idn=>{
     const sel=document.getElementById(idn); const cur=sel.value;
-    sel.innerHTML=years.map(y=>'<option value="'+y+'">'+y+'年</option>').join('');
-    if(years.includes(cur)) sel.value=cur;
+    sel.innerHTML=years.map(y=>'<option value="'+y+'">'+y+'年度</option>').join('');
+    if(years.map(String).includes(cur)) sel.value=cur;
   });
   if(!document.getElementById('todayDate').value)
     document.getElementById('todayDate').value= DB.sessions[0]?DB.sessions[0].date:todayStr();
@@ -575,19 +581,19 @@ function renderToday(){
   document.getElementById('todayTable').innerHTML=rankTable(computeStats(date=>date===d));
 }
 function renderYear(){
-  const y=document.getElementById('yearSelect').value;
-  document.getElementById('yearTable').innerHTML=rankTable(computeStats(date=>date.slice(0,4)===y));
+  const y=parseInt(document.getElementById('yearSelect').value,10);
+  document.getElementById('yearTable').innerHTML=rankTable(computeStats(date=>fiscalYearOf(date)===y));
 }
 
 /* ============ 月別勝率グラフ（SVG） ============ */
 const PALETTE=['#e6194b','#3cb44b','#4363d8','#f58231','#911eb4','#42d4f4','#f032e6','#bfef45','#fabed4','#469990','#dcbeff','#9a6324','#800000','#808000','#000075','#a9a9a9','#e6beff','#aaffc3'];
 function renderChart(){
-  const y=document.getElementById('chartYear').value;
+  const y=parseInt(document.getElementById('chartYear').value,10);
   const area=document.getElementById('chartArea');
-  // 各プレイヤー×月の勝率
+  // 各プレイヤー×月の勝率（月は 4,5,...,12,1,2,3 の年度順で扱う）
   const data={}; // id -> {month(1-12): {w,m}}
   DB.sessions.forEach(s=>{
-    if(s.date.slice(0,4)!==y) return;
+    if(fiscalYearOf(s.date)!==y) return;
     const mo=parseInt(s.date.slice(5,7));
     s.rounds.forEach(r=>r.matches.forEach(m=>{
       if(m.s1==null||m.s2==null) return;
@@ -597,11 +603,15 @@ function renderChart(){
     }));
   });
   const ids=Object.keys(data);
-  if(ids.length===0){ area.innerHTML='<div class="empty">'+y+'年の記録がありません</div>'; return; }
+  if(ids.length===0){ area.innerHTML='<div class="empty">'+y+'年度の記録がありません</div>'; return; }
+
+  // 年度順の月配列：4月始まり〜翌3月
+  const monthsInOrder=[4,5,6,7,8,9,10,11,12,1,2,3];
+  const idxOf=mo=>monthsInOrder.indexOf(mo);
 
   const W=760,H=360, padL=40,padR=16,padT=16,padB=30;
   const plotW=W-padL-padR, plotH=H-padT-padB;
-  const x=mo=> padL + (mo-1)/11*plotW;
+  const x=mo=> padL + idxOf(mo)/11*plotW;
   const yv=rate=> padT + (1-rate)*plotH;
   let svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">';
   // y grid 0/25/50/75/100
@@ -610,14 +620,14 @@ function renderChart(){
     svg+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="#eee"/>';
     svg+='<text x="'+(padL-6)+'" y="'+(yy+4)+'" font-size="11" fill="#999" text-anchor="end">'+p+'%</text>';
   });
-  // x labels
-  for(let mo=1;mo<=12;mo++){
+  // x labels（年度順：4月〜翌3月）
+  monthsInOrder.forEach(mo=>{
     svg+='<text x="'+x(mo)+'" y="'+(H-10)+'" font-size="10" fill="#999" text-anchor="middle">'+mo+'</text>';
-  }
+  });
   ids.forEach((id,idx)=>{
     const col=PALETTE[idx%PALETTE.length];
     const pts=[];
-    for(let mo=1;mo<=12;mo++){ if(data[id][mo]&&data[id][mo].m>0){ pts.push([mo, data[id][mo].w/data[id][mo].m]); } }
+    monthsInOrder.forEach(mo=>{ if(data[id][mo]&&data[id][mo].m>0){ pts.push([mo, data[id][mo].w/data[id][mo].m]); } });
     if(pts.length){
       const d=pts.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+' '+yv(p[1]).toFixed(1)).join(' ');
       svg+='<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.2"/>';
@@ -628,7 +638,7 @@ function renderChart(){
   let legend='<div class="legend">'+ids.map((id,idx)=>
     '<span><i style="background:'+PALETTE[idx%PALETTE.length]+'"></i>'+escapeHtml(nameOf(id))+'</span>'
   ).join('')+'</div>';
-  area.innerHTML=svg+legend+'<div class="muted" style="margin-top:6px;">横軸=月 / 縦軸=勝率。点がある月に試合記録があります。</div>';
+  area.innerHTML=svg+legend+'<div class="muted" style="margin-top:6px;">横軸=月（年度順：4月〜翌3月） / 縦軸=勝率。点がある月に試合記録があります。</div>';
 }
 
 /* ================= 初期化 ================= */
