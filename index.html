@@ -67,17 +67,15 @@
   .rank3{color:#a86b32; font-weight:700;}
   .match{
     display:grid;
-    grid-template-columns: auto minmax(0,1fr) 26px auto 26px minmax(0,1fr);
-    align-items:center; gap:4px; padding:8px 6px; border:1px solid var(--border);
+    grid-template-columns: auto minmax(0,1fr) 34px auto 34px minmax(0,1fr);
+    align-items:center; gap:4px; padding:8px 5px; border:1px solid var(--border);
     border-radius:10px; margin-bottom:8px; background:#fff; max-width:100%; overflow:hidden;
   }
   .court-badge{background:var(--green); color:#fff; border-radius:6px; padding:3px 4px; font-size:9.5px; font-weight:700; white-space:nowrap;}
   .team{min-width:0;}
-  .team .players{font-weight:600; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .score-in{width:26px; text-align:center; font-size:14px; font-weight:700; padding:4px 1px;
-    -webkit-appearance:none; -moz-appearance:textfield; appearance:none;}
-  .score-in::-webkit-outer-spin-button,
-  .score-in::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .team .players{font-weight:600; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .score-in{width:34px; text-align:center; font-size:16px; font-weight:700; padding:5px 2px;
+    -webkit-appearance:none; appearance:none; border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text);}
   .vs{color:var(--muted); font-weight:700; font-size:11px; text-align:center;}
   .team.winner .players{color:var(--win);}
   .round-block{margin-bottom:18px;}
@@ -515,9 +513,9 @@ function renderSessionArea(){
       html+='<div class="match">'+
         '<span class="court-badge">コート'+m.court+'</span>'+
         '<div class="team'+(w1?' winner':'')+'"><div class="players">'+escapeHtml(nameOf(m.team1[0]))+' / '+escapeHtml(nameOf(m.team1[1]))+'</div></div>'+
-        '<input class="score-in" type="number" min="0" max="9" maxlength="1" inputmode="numeric" value="'+(m.s1==null?'':m.s1)+'" oninput="if(this.value.length>1)this.value=this.value.slice(0,1);" onchange="setScore(\''+m.id+'\',1,this.value)">'+
+        '<input class="score-in" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" value="'+(m.s1==null?'':m.s1)+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,1);" onchange="setScore(\''+m.id+'\',1,this.value)">'+
         '<span class="vs">-</span>'+
-        '<input class="score-in" type="number" min="0" max="9" maxlength="1" inputmode="numeric" value="'+(m.s2==null?'':m.s2)+'" oninput="if(this.value.length>1)this.value=this.value.slice(0,1);" onchange="setScore(\''+m.id+'\',2,this.value)">'+
+        '<input class="score-in" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" value="'+(m.s2==null?'':m.s2)+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').slice(0,1);" onchange="setScore(\''+m.id+'\',2,this.value)">'+
         '<div class="team'+(w2?' winner':'')+'" style="text-align:right;"><div class="players">'+escapeHtml(nameOf(m.team2[0]))+' / '+escapeHtml(nameOf(m.team2[1]))+'</div></div>'+
         '</div>';
     });
