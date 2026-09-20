@@ -143,12 +143,15 @@
         メンバー・試合・成績のすべてを1つのファイルに書き出せます。幹事の交代や機種変更のときに、このファイルを渡して「読み込み」すれば丸ごと引き継げます。
       </div>
       <div class="row">
-        <button class="btn" onclick="exportBackup()">💾 バックアップを書き出し</button>
-        <button class="btn sec" onclick="document.getElementById('importFile').click()">📂 バックアップを読み込み</button>
+        <button class="btn" onclick="exportBackup()">💾 書き出し</button>
+        <button class="btn sec" onclick="document.getElementById('importFile').click()">📂 上書き読み込み</button>
+        <button class="btn sec" onclick="document.getElementById('mergeFile').click()">🔀 マージ読み込み</button>
         <input type="file" id="importFile" accept="application/json,.json" style="display:none;" onchange="importBackup(this)">
+        <input type="file" id="mergeFile" accept="application/json,.json" style="display:none;" onchange="mergeBackup(this)">
       </div>
       <div class="muted" style="margin-top:10px;">
-        ※読み込むと現在のデータは上書きされます（読み込み前に自動で控えを書き出します）。
+        ※上書き読み込み：現在のデータをすべて置き換えます（読み込み前に自動で控えを書き出します）。<br>
+        ※マージ読み込み：別のスマホで入力したデータを現在のデータに追加合算します。
       </div>
     </div>
   </section>
@@ -320,6 +323,43 @@ function importBackup(input){
     save();
     renderPlayers(); renderSessionSelect(); refreshStats();
     toast('バックアップを読み込みました（メンバー'+DB.players.length+'人）');
+  };
+  reader.readAsText(file);
+}
+
+function mergeBackup(input){
+  const file=input.files&&input.files[0];
+  input.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let obj;
+    try{ obj=JSON.parse(e.target.result); }catch(err){ alert('このファイルは読み込めません（形式が不正です）。'); return; }
+    const data=obj&&obj.data?obj.data:obj;
+    if(!data||!Array.isArray(data.players)||!Array.isArray(data.sessions)){
+      alert('このアプリのバックアップファイルではないようです。'); return;
+    }
+    // メンバーマージ：既存にいないIDのみ追加
+    const existingPlayerIds=new Set(DB.players.map(p=>p.id));
+    const newPlayers=data.players.filter(p=>!existingPlayerIds.has(p.id));
+    // セッションマージ：IDと日付の両方で重複チェック
+    const existingSessionIds=new Set(DB.sessions.map(s=>s.id));
+    const existingSessionDates=new Set(DB.sessions.map(s=>s.date));
+    const newSessions=data.sessions.filter(s=>!existingSessionIds.has(s.id)&&!existingSessionDates.has(s.date));
+    const skippedDates=data.sessions.filter(s=>!existingSessionIds.has(s.id)&&existingSessionDates.has(s.date)).map(s=>s.date);
+    if(newPlayers.length===0&&newSessions.length===0&&skippedDates.length===0){
+      alert('マージするデータがありませんでした（すべて既存データと重複しています）。'); return;
+    }
+    let msg='マージ内容：メンバー '+newPlayers.length+' 人追加、セッション '+newSessions.length+' 件追加。';
+    if(skippedDates.length) msg+='\n⚠️ 以下の日付はすでに記録があるためスキップされます：\n'+skippedDates.join(', ');
+    msg+='\n現在のデータはそのまま保持されます。\n実行しますか？';
+    if(!confirm(msg)) return;
+    DB.players=[...DB.players, ...newPlayers];
+    DB.sessions=[...DB.sessions, ...newSessions];
+    DB.sessions.sort((a,b)=>b.date.localeCompare(a.date));
+    save();
+    renderPlayers(); renderSessionSelect(); refreshStats();
+    toast('マージ完了：メンバー+'+newPlayers.length+'人、セッション+'+newSessions.length+'件');
   };
   reader.readAsText(file);
 }
