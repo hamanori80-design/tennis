@@ -59,13 +59,15 @@
   .chk-grid label.on{background:var(--green-l); border-color:var(--green);}
   .chk-grid input{width:16px; height:16px; accent-color:var(--green);}
   .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
-  table{width:100%; border-collapse:collapse; font-size:14px; min-width:360px;}
-  th,td{padding:8px 6px; text-align:center; border-bottom:1px solid #eee; white-space:nowrap;}
-  th{background:var(--green-l); color:var(--green-d); font-size:12px;}
-  td.name,th.name{text-align:left; white-space:nowrap;}
-  @media(max-width:480px){
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{padding:7px 4px; text-align:center; border-bottom:1px solid #eee; white-space:nowrap;}
+  th{background:var(--green-l); color:var(--green-d); font-size:11px;}
+  td.name,th.name{text-align:left; white-space:nowrap; max-width:54px; overflow:hidden; text-overflow:ellipsis;}
+  td.rank-no,th.rank-no{width:24px; padding-left:6px;}
+  @media(max-width:390px){
     table{font-size:12px;}
-    th,td{padding:6px 4px;}
+    th,td{padding:6px 3px;}
+    td.name,th.name{max-width:48px;}
   }
   .rank1{color:#c9a000; font-weight:700;}
   .rank2{color:#8a8a8a; font-weight:700;}
@@ -560,10 +562,12 @@ function computeStats(filter){
 }
 function rankTable(arr){
   if(arr.length===0) return '<div class="empty">記録がありません</div>';
-  let h='<div class="table-wrap"><table><thead><tr><th>順位</th><th class="name">名前</th><th>試合</th><th>勝</th><th>分</th><th>敗</th><th>勝率</th><th>Pt</th><th>G差</th></tr></thead><tbody>';
+  let h='<div class="table-wrap"><table><thead><tr><th class="rank-no">#</th><th class="name">名前</th><th>試合</th><th>勝</th><th>分</th><th>敗</th><th>勝率</th><th>Pt</th><th>G差</th></tr></thead><tbody>';
   arr.forEach((o,i)=>{
     const rc=i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
-    h+='<tr><td class="'+rc+'">'+(i+1)+'</td><td class="name">'+escapeHtml(nameOf(o.id))+'</td>'+
+    const fullName=nameOf(o.id);
+    const dispName=fullName.length>3?fullName.slice(0,3)+'…':fullName;
+    h+='<tr><td class="rank-no '+rc+'">'+(i+1)+'</td><td class="name" title="'+escapeHtml(fullName)+'">'+escapeHtml(dispName)+'</td>'+
       '<td>'+o.m+'</td><td>'+o.w+'</td><td>'+o.d+'</td><td>'+o.l+'</td>'+
       '<td><strong>'+(o.rate*100).toFixed(0)+'%</strong></td>'+
       '<td>'+o.pt+'</td>'+
