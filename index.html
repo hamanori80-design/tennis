@@ -58,10 +58,15 @@
   }
   .chk-grid label.on{background:var(--green-l); border-color:var(--green);}
   .chk-grid input{width:16px; height:16px; accent-color:var(--green);}
-  table{width:100%; border-collapse:collapse; font-size:14px;}
-  th,td{padding:8px 6px; text-align:center; border-bottom:1px solid #eee;}
+  .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  table{width:100%; border-collapse:collapse; font-size:14px; min-width:360px;}
+  th,td{padding:8px 6px; text-align:center; border-bottom:1px solid #eee; white-space:nowrap;}
   th{background:var(--green-l); color:var(--green-d); font-size:12px;}
-  td.name,th.name{text-align:left;}
+  td.name,th.name{text-align:left; white-space:nowrap;}
+  @media(max-width:480px){
+    table{font-size:12px;}
+    th,td{padding:6px 4px;}
+  }
   .rank1{color:#c9a000; font-weight:700;}
   .rank2{color:#8a8a8a; font-weight:700;}
   .rank3{color:#a86b32; font-weight:700;}
@@ -535,33 +540,36 @@ function fiscalYearOf(dateStr){
 // filter: function(dateStr)->bool
 function computeStats(filter){
   const stat={}; // id -> {w,l,gf,ga,m}
-  function ensure(id){ if(!stat[id]) stat[id]={id,w:0,l:0,gf:0,ga:0,m:0}; return stat[id]; }
+  function ensure(id){ if(!stat[id]) stat[id]={id,w:0,d:0,l:0,gf:0,ga:0,m:0}; return stat[id]; }
   DB.sessions.forEach(s=>{
     if(!filter(s.date)) return;
     s.rounds.forEach(r=>r.matches.forEach(m=>{
       if(m.s1==null||m.s2==null) return;
       const t1=m.team1, t2=m.team2;
-      const win1=m.s1>m.s2, win2=m.s2>m.s1;
-      t1.forEach(id=>{const o=ensure(id); o.m++; o.gf+=m.s1; o.ga+=m.s2; if(win1)o.w++; else if(win2)o.l++;});
-      t2.forEach(id=>{const o=ensure(id); o.m++; o.gf+=m.s2; o.ga+=m.s1; if(win2)o.w++; else if(win1)o.l++;});
+      const win1=m.s1>m.s2, win2=m.s2>m.s1, draw=m.s1===m.s2;
+      t1.forEach(id=>{const o=ensure(id); o.m++; o.gf+=m.s1; o.ga+=m.s2; if(win1)o.w++; else if(draw)o.d++; else o.l++;});
+      t2.forEach(id=>{const o=ensure(id); o.m++; o.gf+=m.s2; o.ga+=m.s1; if(win2)o.w++; else if(draw)o.d++; else o.l++;});
     }));
   });
   const arr=Object.values(stat);
-  arr.forEach(o=>{ o.rate=o.m? o.w/o.m:0; o.diff=o.gf-o.ga; });
-  arr.sort((a,b)=> b.rate-a.rate || b.diff-a.diff || b.w-a.w);
+  // pt: 勝=2, 引き分け=1, 負=0
+  arr.forEach(o=>{ o.rate=o.m? o.w/o.m:0; o.pt=o.w*2+o.d; o.diff=o.gf-o.ga; });
+  // 順位: 1)勝率 2)ポイント 3)ゲーム差
+  arr.sort((a,b)=> b.rate-a.rate || b.pt-a.pt || b.diff-a.diff);
   return arr;
 }
 function rankTable(arr){
   if(arr.length===0) return '<div class="empty">記録がありません</div>';
-  let h='<table><thead><tr><th>順位</th><th class="name">名前</th><th>試合</th><th>勝</th><th>敗</th><th>勝率</th><th>獲得G</th><th>失G</th><th>G差</th></tr></thead><tbody>';
+  let h='<div class="table-wrap"><table><thead><tr><th>順位</th><th class="name">名前</th><th>試合</th><th>勝</th><th>分</th><th>敗</th><th>勝率</th><th>Pt</th><th>G差</th></tr></thead><tbody>';
   arr.forEach((o,i)=>{
     const rc=i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
     h+='<tr><td class="'+rc+'">'+(i+1)+'</td><td class="name">'+escapeHtml(nameOf(o.id))+'</td>'+
-      '<td>'+o.m+'</td><td>'+o.w+'</td><td>'+o.l+'</td>'+
+      '<td>'+o.m+'</td><td>'+o.w+'</td><td>'+o.d+'</td><td>'+o.l+'</td>'+
       '<td><strong>'+(o.rate*100).toFixed(0)+'%</strong></td>'+
-      '<td>'+o.gf+'</td><td>'+o.ga+'</td><td>'+(o.diff>0?'+':'')+o.diff+'</td></tr>';
+      '<td>'+o.pt+'</td>'+
+      '<td>'+(o.diff>0?'+':'')+o.diff+'</td></tr>';
   });
-  return h+'</tbody></table>';
+  return h+'</tbody></table></div>';
 }
 
 function refreshStats(){
