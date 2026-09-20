@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>BIVNテニス練習試合 ダブルス組み合わせ</title>
 <style>
   :root{
@@ -560,19 +563,29 @@ function computeStats(filter){
   arr.sort((a,b)=> b.rate-a.rate || b.pt-a.pt || b.diff-a.diff);
   return arr;
 }
-function rankTable(arr){
+const RANK_MIN_MATCHES = 20;
+function rankTable(arr, showUnranked=true){
   if(arr.length===0) return '<div class="empty">記録がありません</div>';
-  let h='<div class="table-wrap"><table><thead><tr><th class="rank-no">#</th><th class="name">名前</th><th>試合</th><th>勝</th><th>分</th><th>敗</th><th>勝率</th><th>Pt</th><th>G差</th></tr></thead><tbody>';
-  arr.forEach((o,i)=>{
-    const rc=i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
+  const ranked = showUnranked ? arr.filter(o=>o.m>=RANK_MIN_MATCHES) : arr;
+  const unranked = showUnranked ? arr.filter(o=>o.m<RANK_MIN_MATCHES) : [];
+  const thead='<div class="table-wrap"><table><thead><tr><th class="rank-no">#</th><th class="name">名前</th><th>試合</th><th>勝</th><th>分</th><th>敗</th><th>勝率</th><th>Pt</th><th>G差</th></tr></thead><tbody>';
+  function row(o, rank){
+    const rc=rank===1?'rank1':rank===2?'rank2':rank===3?'rank3':'';
     const fullName=nameOf(o.id);
     const dispName=fullName.length>3?fullName.slice(0,3)+'…':fullName;
-    h+='<tr><td class="rank-no '+rc+'">'+(i+1)+'</td><td class="name" title="'+escapeHtml(fullName)+'">'+escapeHtml(dispName)+'</td>'+
-      '<td>'+o.m+'</td><td>'+o.w+'</td><td>'+o.d+'</td><td>'+o.l+'</td>'+
+    const rankCell = rank ? '<td class="rank-no '+rc+'">'+rank+'</td>' : '<td class="rank-no muted">-</td>';
+    return '<tr>'+rankCell+'<td class="name'+(rank?'':' muted')+'" title="'+escapeHtml(fullName)+'">'+escapeHtml(dispName)+'</td>'+
+      '<td'+(rank?'':' class="muted"')+'>'+o.m+'</td><td>'+o.w+'</td><td>'+o.d+'</td><td>'+o.l+'</td>'+
       '<td><strong>'+(o.rate*100).toFixed(0)+'%</strong></td>'+
       '<td>'+o.pt+'</td>'+
       '<td>'+(o.diff>0?'+':'')+o.diff+'</td></tr>';
-  });
+  }
+  let h = thead;
+  ranked.forEach((o,i)=>{ h+=row(o,i+1); });
+  if(unranked.length){
+    h+='<tr><td colspan="9" style="text-align:left;font-size:11px;color:#999;padding:6px 6px 2px;">── ランキング外（'+RANK_MIN_MATCHES+'試合未満）──</td></tr>';
+    unranked.forEach(o=>{ h+=row(o,0); });
+  }
   return h+'</tbody></table></div>';
 }
 
@@ -591,7 +604,7 @@ function refreshStats(){
 }
 function renderToday(){
   const d=document.getElementById('todayDate').value||todayStr();
-  document.getElementById('todayTable').innerHTML=rankTable(computeStats(date=>date===d));
+  document.getElementById('todayTable').innerHTML=rankTable(computeStats(date=>date===d), false);
 }
 function renderYear(){
   const y=parseInt(document.getElementById('yearSelect').value,10);
